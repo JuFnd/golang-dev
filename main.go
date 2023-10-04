@@ -15,9 +15,7 @@ func main() {
 		sessions: make(map[string]Session),
 		users:    make(map[string]User),
 		collections: map[string]string{
-			"new":    "Новинки",
-			"action": "Боевик",
-			"comedy": "Комедия",
+			"new": "Новинки",
 		},
 		lg: lg.With("module", "core"),
 	}

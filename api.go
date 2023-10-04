@@ -29,6 +29,7 @@ type Film struct {
 
 type FilmsResponse struct {
 	Page           uint64 `json:"current_page"`
+	PageSize       int    `json:"page_size"`
 	CollectionName string `json:"collection_name"`
 	Total          uint64 `json:"total"`
 	Films          []Film `json:"films"`
@@ -39,7 +40,7 @@ func (a *API) Films(w http.ResponseWriter, r *http.Request) {
 	if r.Method != http.MethodGet {
 		response.Status = http.StatusMethodNotAllowed
 	} else {
-		collectionId := r.URL.Query().Get("collection_id")
+		collectionId := r.URL.Query.Get("collection_id")
 		if collectionId == "" {
 			collectionId = "new"
 		}
@@ -48,7 +49,10 @@ func (a *API) Films(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			page = 1
 		}
-		pageSize := uint64(8)
+		pageSize, err := strconv.ParseUint(r.URL.Query().Get("page_size"), 10, 64)
+		if err != nil {
+			pageSize = 8
+		}
 
 		collectionName, found := a.core.GetCollection(collectionId)
 		if !found {
@@ -56,10 +60,6 @@ func (a *API) Films(w http.ResponseWriter, r *http.Request) {
 		}
 
 		films := GetFilms()
-		if collectionName != "Новинки" {
-			films = SortFilms(collectionName, films)
-		}
-
 		if uint64(cap(films)) < page*pageSize {
 			page = uint64(math.Ceil(float64(uint64(cap(films)) / pageSize)))
 		}
@@ -68,6 +68,7 @@ func (a *API) Films(w http.ResponseWriter, r *http.Request) {
 			Total:          uint64(len(films)),
 			CollectionName: collectionName,
 			Films:          films[pageSize*(page-1) : pageSize*page],
+			PageSize:       int(pageSize),
 		}
 		response.Body = filmsResponse
 	}
@@ -136,7 +137,7 @@ func (a *API) Signin(w http.ResponseWriter, r *http.Request) {
 				Value:    sid,
 				Path:     "/",
 				Expires:  session.ExpiresAt,
-				HttpOnly: false,
+				HttpOnly: true,
 			}
 			http.SetCookie(w, cookie)
 		}
